@@ -8,13 +8,14 @@
 #include <chrono>
 #include <thread>
 #include <cstdlib>
+#include <cstring>  // Add this for strlen
 
 class MenuSystem {
 private:
     BookingSystem bookingSystem;
     bool isRunning;
 
-    // New UI and helper methods from your provided code
+    // UI and helper methods
     void clearScreen();
     void pressEnterToContinue();
     void showWelcomeBanner();
@@ -36,7 +37,6 @@ public:
 
 private:
     // Helper methods for menu logic
-    void handleMainMenuChoice(int choice);
     void handleNewBooking();
     void handleCancellation();
 };
