@@ -1,0 +1,18 @@
+[
+    {
+        "bookingDate": "",
+        "bookingId": 1,
+        "bookingStatus": "confirmed",
+        "bookingTime": "",
+        "cabinClass": "economy",
+        "departureDate": "",
+        "departureTime": "",
+        "destination": "",
+        "flightNumber": "AI101",
+        "origin": "",
+        "passengerName": "Simulated Passenger",
+        "pnr": "ABC1",
+        "seatNumber": "12A",
+        "totalPrice": 420.49
+    }
+]
