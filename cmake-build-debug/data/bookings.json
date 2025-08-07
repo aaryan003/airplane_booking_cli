@@ -31,7 +31,55 @@
       "bookingStatus": "confirmed",
       "bookingDate": "2025-08-07",
       "bookingTime": "06:07"
+    },
+    {
+      "bookingId": 1003,
+      "pnr": "PH1003",
+      "passengerName": "Alice",
+      "flightNumber": "AI101",
+      "origin": "NYC",
+      "destination": "BOM",
+      "departureDate": "2025-08-09",
+      "departureTime": "08:30",
+      "seatNumber": "10A",
+      "cabinClass": "Economy",
+      "totalPrice": 349.99,
+      "bookingStatus": "confirmed",
+      "bookingDate": "2025-08-07",
+      "bookingTime": "06:41"
+    },
+    {
+      "bookingId": 1004,
+      "pnr": "PH1004",
+      "passengerName": "David",
+      "flightNumber": "AI101",
+      "origin": "NYC",
+      "destination": "BOM",
+      "departureDate": "2025-08-09",
+      "departureTime": "08:30",
+      "seatNumber": "10C",
+      "cabinClass": "Economy",
+      "totalPrice": 349.99,
+      "bookingStatus": "confirmed",
+      "bookingDate": "2025-08-07",
+      "bookingTime": "06:41"
+    },
+    {
+      "bookingId": 1005,
+      "pnr": "PH1005",
+      "passengerName": "Charlie",
+      "flightNumber": "AI101",
+      "origin": "NYC",
+      "destination": "BOM",
+      "departureDate": "2025-08-09",
+      "departureTime": "08:30",
+      "seatNumber": "10B",
+      "cabinClass": "Economy",
+      "totalPrice": 349.99,
+      "bookingStatus": "confirmed",
+      "bookingDate": "2025-08-07",
+      "bookingTime": "06:41"
     }
   ],
-  "nextBookingId": 1003
+  "nextBookingId": 1006
 }

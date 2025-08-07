@@ -1,0 +1,10 @@
+^C:\USERS\AARYA\ONEDRIVE\DESKTOP\AIRPLANE_APP\BUILD\CMAKEFILES\AEA52FC5AB494492769378CD14E1C48F\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/aarya/OneDrive/Desktop/airplane_app -BC:/Users/aarya/OneDrive/Desktop/airplane_app/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/aarya/OneDrive/Desktop/airplane_app/build/airplane_booking_cli.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

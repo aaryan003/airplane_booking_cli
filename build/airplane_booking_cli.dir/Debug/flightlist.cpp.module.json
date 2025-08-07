@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "airplane_booking_cli.dir\\Debug\\FlightList.obj",
+            "outputs": [
+                "C:\\Users\\aarya\\OneDrive\\Desktop\\airplane_app\\build\\airplane_booking_cli.dir\\Debug\\vc143.pdb",
+                "airplane_booking_cli.dir\\Debug\\"
+            ],
+            "requires": []
+        }
+    ]
+}

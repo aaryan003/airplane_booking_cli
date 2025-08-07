@@ -1,0 +1,10 @@
+^C:\USERS\AARYA\ONEDRIVE\DESKTOP\AIRPLANE_APP\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/aarya/OneDrive/Desktop/airplane_app -BC:/Users/aarya/OneDrive/Desktop/airplane_app/build --check-stamp-file C:/Users/aarya/OneDrive/Desktop/airplane_app/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

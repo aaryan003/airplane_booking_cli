@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\aarya\OneDrive\Desktop\airplane_app\build\CMakeFiles\aea52fc5ab494492769378cd14e1c48f\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{211F3B2E-9873-37A0-A8AF-A93933FACA01}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

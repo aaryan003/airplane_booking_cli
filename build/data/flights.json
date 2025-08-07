@@ -1,0 +1,47 @@
+[
+    {
+        "aircraftType": "Boeing 787-8",
+        "airlineName": "Air India",
+        "arrivalDate": "2025-08-09",
+        "arrivalTime": "22:45",
+        "availableSeats": 43,
+        "basePrice": 299.99,
+        "departureDate": "2025-08-09",
+        "departureTime": "08:30",
+        "destination": "BOM",
+        "duration": "14h 15m",
+        "flightNumber": "AI101",
+        "origin": "NYC",
+        "totalSeats": 248
+    },
+    {
+        "aircraftType": "Airbus A320",
+        "airlineName": "IndiGo",
+        "arrivalDate": "2025-08-09",
+        "arrivalTime": "04:30",
+        "availableSeats": 67,
+        "basePrice": 199.99,
+        "departureDate": "2025-08-09",
+        "departureTime": "14:15",
+        "destination": "BOM",
+        "duration": "12h 15m",
+        "flightNumber": "6E201",
+        "origin": "NYC",
+        "totalSeats": 180
+    },
+    {
+        "aircraftType": "Airbus A321",
+        "airlineName": "Vistara",
+        "arrivalDate": "2025-08-09",
+        "arrivalTime": "09:45",
+        "availableSeats": 23,
+        "basePrice": 279.99,
+        "departureDate": "2025-08-09",
+        "departureTime": "19:30",
+        "destination": "BOM",
+        "duration": "14h 15m",
+        "flightNumber": "UK301",
+        "origin": "NYC",
+        "totalSeats": 158
+    }
+]

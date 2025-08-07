@@ -7,45 +7,58 @@
 #include <cstdlib>
 #include <filesystem>
 #include <ctime>
-#include <limits> // Include for std::numeric_limits
-#include <cstring> // For strlen
+#include <limits>
+#include <cstring>
 
 BookingSystem::BookingSystem() {
     std::cout << "Attempting to load existing bookings..." << std::endl;
-
     if (!std::filesystem::exists("data")) {
         std::filesystem::create_directory("data");
         std::cout << "Created 'data' directory." << std::endl;
     }
-
     bookingManager.loadBookingsFromFile("data/bookings.json");
+    flightList.loadFlightsFromFile("data/flights.json");
     std::cout << "Booking system initialized." << std::endl;
-
-    // Initialize selected flight index
     selectedFlightIndex = -1;
 }
 
 BookingSystem::~BookingSystem() {}
 
 void BookingSystem::acquireLock() {
-    std::cout << "Acquiring system lock..." << std::endl;
-    while (std::filesystem::exists("data/lock.txt")) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    bool acquired = false;
+    while (!acquired) {
+        try {
+            // Attempt to create the lock file. O_CREAT | O_EXCL ensures it's atomic.
+            // On Windows, this is more complex. A simple approach is to check existence and then create.
+            if (!std::filesystem::exists("data/lock.txt")) {
+                std::ofstream lockFile("data/lock.txt");
+                if (lockFile.is_open()) {
+                    lockFile << std::this_thread::get_id();
+                    lockFile.close();
+                    acquired = true;
+                }
+            }
+        } catch (...) {
+            // File system errors, assume another process has the lock
+        }
+        if (!acquired) {
+            std::cout << "Thread " << std::this_thread::get_id() << " is waiting for the lock..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
     }
-    std::ofstream newLockFile("data/lock.txt");
-    if (newLockFile.is_open()) {
-        newLockFile.close();
-        std::cout << "Lock acquired successfully." << std::endl;
-    }
+    std::cout << "Thread " << std::this_thread::get_id() << " has acquired the lock." << std::endl;
 }
 
 void BookingSystem::releaseLock() {
-    std::cout << "Releasing system lock." << std::endl;
-    if (std::filesystem::exists("data/lock.txt")) {
-        std::filesystem::remove("data/lock.txt");
+    try {
+        if (std::filesystem::exists("data/lock.txt")) {
+            std::filesystem::remove("data/lock.txt");
+            std::cout << "Thread " << std::this_thread::get_id() << " has released the lock." << std::endl;
+        }
+    } catch (...) {
+        // Handle potential file removal errors
     }
 }
-
 double BookingSystem::calculateDynamicPrice(const Flight* flight, int daysUntilDeparture) {
     if (!flight) return 0.0;
 
@@ -422,65 +435,78 @@ bool BookingSystem::processPayment() {
 }
 
 bool BookingSystem::generateBookingConfirmation() {
-    std::cout << "\n=== GENERATING BOOKING CONFIRMATION ===" << std::endl;
+    acquireLock(); // Acquire lock at the start of the critical section
 
-    const Flight* selectedFlight = flightList.getFlightByIndex(selectedFlightIndex);
-    if (!selectedFlight) {
-        std::cout << "Failed to find the selected flight. Booking cancelled." << std::endl;
-        return false;
-    }
+    const Flight* selectedFlight = nullptr;
+    try {
+        // Reload fresh data to ensure we're not using stale information
+        bookingManager.loadBookingsFromFile("data/bookings.json");
+        flightList.loadFlightsFromFile("data/flights.json");
 
-    // Get a non-const reference to the flight object to modify its properties
-    Flight* flightToUpdate = const_cast<Flight*>(selectedFlight);
-
-    // Calculate final price
-    int daysUntilDeparture = 15;
-    double basePrice = calculateDynamicPrice(selectedFlight, daysUntilDeparture);
-    double totalPrice = (basePrice + 45.50) * userInput.getTravelers();
-
-    // Create booking in the BookingManager
-    int bookingId = bookingManager.createBooking(
-        passengerName,                    // Use actual collected name
-        flightToUpdate->getFlightNumber(),
-        userInput.getOrigin(),
-        userInput.getDestination(),
-        userInput.getDepartureDate(),
-        flightToUpdate->getDepartureTime(),
-        seatNumber,                       // Use actual selected seat
-        userInput.getCabinClass(),
-        totalPrice
-    );
-
-    if (bookingId != -1) {
-        // Step 1: Update the available seat count for the booked flight.
-        int currentAvailableSeats = flightToUpdate->getAvailableSeats();
-        int newAvailableSeats = currentAvailableSeats - userInput.getTravelers();
-        if (newAvailableSeats >= 0) {
-            flightToUpdate->setAvailableSeats(newAvailableSeats);
-            std::cout << "Flight seat count updated. New available seats: " << newAvailableSeats << std::endl;
-        } else {
-            std::cout << "Warning: Seat count went below zero. This should be prevented by validation." << std::endl;
+        selectedFlight = flightList.getFlightByIndex(selectedFlightIndex);
+        if (!selectedFlight) {
+            std::cout << "Failed to find the selected flight. Booking cancelled." << std::endl;
+            releaseLock(); // Release lock on failure
+            return false;
         }
 
-        std::cout << "\n=== BOOKING CONFIRMATION ===" << std::endl;
-        std::cout << "Dear " << passengerName << "," << std::endl;
-        std::cout << "Your booking has been confirmed!" << std::endl;
+        // Final check to see if the seat is still available
+        if (isSeatOccupied(seatNumber, *selectedFlight)) {
+            std::cout << "\nBooking failed: The selected seat " << seatNumber << " has been taken by another user." << std::endl;
+            releaseLock();
+            return false;
+        }
 
-        bookingManager.displayBookingDetails(bookingId);
+        // ... (rest of the booking logic) ...
 
-        // Step 2: Save the updated bookings and flight list to files to ensure persistence.
-        bookingManager.saveBookingsToFile("data/bookings.json");
-        flightList.saveFlightsToFile("data/flights.json"); // Save the updated flight data
+        // Get a non-const reference to the flight object to modify its properties
+        Flight* flightToUpdate = const_cast<Flight*>(selectedFlight);
 
-        std::cout << "\nConfirmation sent to: " << passengerEmail << std::endl;
-        std::cout << "SMS notification sent to: " << passengerPhone << std::endl;
-        std::cout << "\nBooking confirmed! Please save your booking details." << std::endl;
-        std::cout << "E-ticket will be sent to your registered email address." << std::endl;
+        // Calculate final price
+        int daysUntilDeparture = 15;
+        double basePrice = calculateDynamicPrice(selectedFlight, daysUntilDeparture);
+        double totalPrice = (basePrice + 45.50) * userInput.getTravelers();
 
-        return true;
+        // Create booking in the BookingManager
+        int bookingId = bookingManager.createBooking(
+            passengerName,
+            flightToUpdate->getFlightNumber(),
+            userInput.getOrigin(),
+            // CORRECTED LINES BELOW
+            userInput.getDestination(),
+            userInput.getDepartureDate(),
+            flightToUpdate->getDepartureTime(),
+            seatNumber,
+            userInput.getCabinClass(),
+            totalPrice
+        );
+
+        if (bookingId != -1) {
+            // Update the available seat count for the booked flight.
+            int currentAvailableSeats = flightToUpdate->getAvailableSeats();
+            int newAvailableSeats = currentAvailableSeats - userInput.getTravelers();
+            flightToUpdate->setAvailableSeats(newAvailableSeats);
+
+            std::cout << "\n=== BOOKING CONFIRMATION ===" << std::endl;
+            std::cout << "Dear " << passengerName << "," << std::endl;
+            std::cout << "Your booking has been confirmed!" << std::endl;
+
+            bookingManager.displayBookingDetails(bookingId);
+
+            // Save the updated bookings and flight list to files
+            bookingManager.saveBookingsToFile("data/bookings.json");
+            flightList.saveFlightsToFile("data/flights.json");
+
+            std::cout << "\nConfirmation sent to: " << passengerEmail << std::endl;
+            std::cout << "SMS notification sent to: " << passengerPhone << std::endl;
+            return true;
+        }
+
+    } catch (...) {
+        std::cout << "An unexpected error occurred during booking confirmation." << std::endl;
     }
 
-    std::cout << "Failed to generate booking confirmation." << std::endl;
+    releaseLock(); // Release lock at the end
     return false;
 }
 int BookingSystem::getBookingIdFromInput(const char* input) {
@@ -614,7 +640,7 @@ void BookingSystem::startBookingProcess() {
     }
 
     // Calculate days until departure (simplified for demo)
-    int daysUntilDeparture = 15; // Default value for demo
+    int daysUntilDeparture = 15;
 
     std::cout << "\nStep 4: Dynamic pricing calculation..." << std::endl;
     showDynamicPricingBreakdown(selectedFlight, daysUntilDeparture);
@@ -635,13 +661,11 @@ void BookingSystem::startBookingProcess() {
 
     if (validateBookingData()) {
         processPayment();
-        generateBookingConfirmation();
+        generateBookingConfirmation(); // This function will now handle the lock
     } else {
         std::cout << "Booking validation failed. Please try again." << std::endl;
     }
-}
-
-// Enhanced Modification Functions
+}// Enhanced Modification Functions
 void BookingSystem::changeFlightDate() {
     std::cout << "Enter Booking ID or PNR: ";
     char input[20];
@@ -1344,4 +1368,55 @@ bool BookingSystem::isSeatOccupied(const char* seatNumber, const Flight& flight)
             }
     }
     return false; // Seat is available
+}
+
+// Concurrency simulation function
+void BookingSystem::simulateConcurrentBooking(int threadId, int flightIndex, const char* name, const char* seat) {
+    std::cout << "Thread " << threadId << ": Attempting to book seat " << seat << " for flight " << flightList.getFlightByIndex(flightIndex)->getFlightNumber() << std::endl;
+
+    // Simulate some work before trying to get the lock
+    std::this_thread::sleep_for(std::chrono::milliseconds(50 * (threadId % 3)));
+
+    acquireLock();
+
+    try {
+        // Critical Section: Accessing and modifying shared resources
+        bookingManager.loadBookingsFromFile("data/bookings.json");
+        flightList.loadFlightsFromFile("data/flights.json");
+
+        const Flight* selectedFlight = flightList.getFlightByIndex(flightIndex);
+        if (!selectedFlight) {
+            std::cout << "Thread " << threadId << ": Error - Flight not found." << std::endl;
+            releaseLock();
+            return;
+        }
+
+        if (isSeatOccupied(seat, *selectedFlight)) {
+            std::cout << "Thread " << threadId << ": Seat " << seat << " is already occupied. Booking failed." << std::endl;
+        } else {
+            // Simulate a successful payment
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+
+            int newBookingId = bookingManager.createBooking(name, selectedFlight->getFlightNumber(),
+                                                           selectedFlight->getOrigin(), selectedFlight->getDestination(),
+                                                           selectedFlight->getDepartureDate(), selectedFlight->getDepartureTime(),
+                                                           seat, "Economy", selectedFlight->getBasePrice() + 50.0);
+
+            if (newBookingId != -1) {
+                // Update flight seat count and save
+                Flight* flightToUpdate = const_cast<Flight*>(selectedFlight);
+                flightToUpdate->setAvailableSeats(flightToUpdate->getAvailableSeats() - 1);
+                bookingManager.saveBookingsToFile("data/bookings.json");
+                flightList.saveFlightsToFile("data/flights.json");
+
+                std::cout << "Thread " << threadId << ": Successfully booked seat " << seat << " with Booking ID " << newBookingId << std::endl;
+            } else {
+                std::cout << "Thread " << threadId << ": Booking failed." << std::endl;
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cout << "Thread " << threadId << ": An unexpected error occurred: " << e.what() << std::endl;
+    }
+
+    releaseLock();
 }

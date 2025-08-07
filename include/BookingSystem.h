@@ -4,8 +4,10 @@
 #include "BookingManager.h"
 #include "FlightList.h"
 #include "UserInput.h"
-#include "StringUtils.h" // Add this include for StringUtils functions
+#include "StringUtils.h"
 #include <string>
+#include <thread> // Added for concurrency
+#include <vector> // Added for storing threads
 
 class BookingSystem {
 private:
@@ -13,8 +15,8 @@ private:
     FlightList flightList;
     UserInput userInput;
     char passengerName[50];
-    char passengerEmail[50]; // Added missing member
-    char passengerPhone[20]; // Added missing member
+    char passengerEmail[50];
+    char passengerPhone[20];
     char seatNumber[5];
     int selectedFlightIndex;
 
@@ -25,8 +27,9 @@ private:
     void showDynamicPricingBreakdown(const Flight* flight, int daysUntilDeparture);
     double calculateDynamicPrice(const Flight* flight, int daysUntilDeparture);
     int getBookingIdFromInput(const char* input);
-    void displaySampleSeatMap();
+    void showSeatMap(const Flight& flight);
     bool isValidSeatNumber(const char* seatNumber);
+    bool isSeatOccupied(const char* seatNumber, const Flight& flight);
 
     // Private methods for modification and cancellation
     void processCancellation(int bookingId);
@@ -36,9 +39,7 @@ private:
     void changeSeatSelection();
     void upgradeCabinClass();
     void modifyPassengerDetails();
-    void showModificationMenu(int bookingId); // Added missing declaration
-    // Add this new private helper function declaration
-    bool isSeatOccupied(const char* seatNumber, const Flight& flight);
+    void showModificationMenu(int bookingId);
 
 public:
     BookingSystem();
@@ -69,7 +70,9 @@ public:
     void reviewBookingDetails();
     bool processPayment();
     bool generateBookingConfirmation();
-    void showSeatMap(const Flight& flight);
+
+    // Concurrency-related function
+    void simulateConcurrentBooking(int threadId, int flightIndex, const char* name, const char* seat);
 };
 
 #endif // BOOKINGSYSTEM_H

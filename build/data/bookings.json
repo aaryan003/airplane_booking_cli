@@ -1,0 +1,53 @@
+{
+  "bookings": [
+    {
+      "bookingId": 1000,
+      "pnr": "BM1000",
+      "passengerName": "Aryan Patel",
+      "flightNumber": "AI101",
+      "origin": "NYC",
+      "destination": "BOM",
+      "departureDate": "2025-08-09",
+      "departureTime": "08:30",
+      "seatNumber": "1A",
+      "cabinClass": "economy",
+      "totalPrice": 480.486,
+      "bookingStatus": "confirmed",
+      "bookingDate": "2025-08-07",
+      "bookingTime": "07:20"
+    },
+    {
+      "bookingId": 1001,
+      "pnr": "PE1001",
+      "passengerName": "asdf",
+      "flightNumber": "AI101",
+      "origin": "NYC",
+      "destination": "BOM",
+      "departureDate": "2025-08-09",
+      "departureTime": "08:30",
+      "seatNumber": "2A",
+      "cabinClass": "economy",
+      "totalPrice": 480.486,
+      "bookingStatus": "confirmed",
+      "bookingDate": "2025-08-07",
+      "bookingTime": "07:24"
+    },
+    {
+      "bookingId": 1002,
+      "pnr": "OJ1002",
+      "passengerName": "Mohit",
+      "flightNumber": "AI101",
+      "origin": "NYC",
+      "destination": "BOM",
+      "departureDate": "2025-08-09",
+      "departureTime": "08:30",
+      "seatNumber": "10B",
+      "cabinClass": "economy",
+      "totalPrice": 480.486,
+      "bookingStatus": "confirmed",
+      "bookingDate": "2025-08-07",
+      "bookingTime": "07:25"
+    }
+  ],
+  "nextBookingId": 1003
+}

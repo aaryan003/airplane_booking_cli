@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.30)
+set(CMAKE_POLICY_DEFAULT_CMP0148 NEW)
+set(VCPKG_ROOT "C:/Users/aarya/.vcpkg-clion/vcpkg")
+list(APPEND CMAKE_PREFIX_PATH ${VCPKG_ROOT}/installed/x64-windows)
 project(airplane_booking_cli)
 
 set(CMAKE_CXX_STANDARD 20)
