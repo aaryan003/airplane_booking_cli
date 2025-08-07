@@ -23,11 +23,14 @@ public:
     Flight* getFlightByIndex(int index);
     const Flight* getFlightByIndex(int index) const;
     int getCount() const;
-    int getFlightCount() const;  // Added missing method
+    int getFlightCount() const;
     void clearFlights();
     int getIndexOfFlight(const char* flightNumber) const;
 
-    // Search methods - Added missing method
+    // Correctly declared public method
+    Flight* getFlightByNumber(const char* flightNumber);
+
+    // Search methods
     int searchByRoute(const char* origin, const char* destination, const char* departureDate);
 
     // Display methods

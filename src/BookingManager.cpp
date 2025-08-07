@@ -13,10 +13,10 @@ BookingManager::BookingManager() : bookingCount(0), nextBookingId(1000) {
 BookingManager::~BookingManager() {}
 
 int BookingManager::createBooking(const char* passengerName, const char* flightNumber,
-                                 const char* origin, const char* destination,
-                                 const char* departureDate, const char* departureTime,
-                                 const char* seatNumber, const char* cabinClass,
-                                 double totalPrice) {
+                                  const char* origin, const char* destination,
+                                  const char* departureDate, const char* departureTime,
+                                  const char* seatNumber, const char* cabinClass,
+                                  double totalPrice) {
     if (bookingCount >= MAX_BOOKINGS) {
         std::cout << "Error: Maximum bookings limit reached." << std::endl;
         return -1;
@@ -25,7 +25,7 @@ int BookingManager::createBooking(const char* passengerName, const char* flightN
     int bookingId = nextBookingId++;
 
     Booking newBooking(bookingId, passengerName, flightNumber, origin, destination,
-                      departureDate, departureTime, seatNumber, cabinClass, totalPrice);
+                       departureDate, departureTime, seatNumber, cabinClass, totalPrice);
 
     char pnr[10];
     generatePnr(pnr, bookingId);
@@ -187,6 +187,7 @@ bool BookingManager::cancelBooking(int bookingId) {
     return false;
 }
 
+// **Private** helper method
 Booking* BookingManager::findBookingById(int bookingId) {
     for (int i = 0; i < bookingCount; i++) {
         if (bookings[i].getBookingId() == bookingId) {
@@ -196,8 +197,26 @@ Booking* BookingManager::findBookingById(int bookingId) {
     return nullptr;
 }
 
+// **Public** getter methods
+const Booking* BookingManager::getBooking(int index) const {
+    if (index >= 0 && index < bookingCount) {
+        return &bookings[index];
+    }
+    return nullptr;
+}
+
+const Booking* BookingManager::getBookingById(int bookingId) const {
+    for (int i = 0; i < bookingCount; i++) {
+        if (bookings[i].getBookingId() == bookingId) {
+            return &bookings[i];
+        }
+    }
+    return nullptr;
+}
+
 void BookingManager::displayBookingDetails(int bookingId) {
-    Booking* booking = findBookingById(bookingId);
+    // Use the public getter here
+    const Booking* booking = getBookingById(bookingId);
     if (booking) {
         booking->displayBookingDetails();
     } else {

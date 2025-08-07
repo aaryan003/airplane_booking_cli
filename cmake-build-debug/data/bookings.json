@@ -1,5 +1,37 @@
 {
   "bookings": [
+    {
+      "bookingId": 1001,
+      "pnr": "GY1001",
+      "passengerName": "Aryan Patel",
+      "flightNumber": "AI107",
+      "origin": "NYC",
+      "destination": "BOM",
+      "departureDate": "2025-08-09",
+      "departureTime": "11:45",
+      "seatNumber": "1A",
+      "cabinClass": "economy",
+      "totalPrice": 496.435,
+      "bookingStatus": "confirmed",
+      "bookingDate": "2025-08-07",
+      "bookingTime": "06:05"
+    },
+    {
+      "bookingId": 1002,
+      "pnr": "BH1002",
+      "passengerName": "Parachin",
+      "flightNumber": "AI107",
+      "origin": "NYC",
+      "destination": "BOM",
+      "departureDate": "2025-08-09",
+      "departureTime": "11:45",
+      "seatNumber": "2B",
+      "cabinClass": "economy",
+      "totalPrice": 496.435,
+      "bookingStatus": "confirmed",
+      "bookingDate": "2025-08-07",
+      "bookingTime": "06:07"
+    }
   ],
-  "nextBookingId": 1001
+  "nextBookingId": 1003
 }

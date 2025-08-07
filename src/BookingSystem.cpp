@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <ctime>
 #include <limits> // Include for std::numeric_limits
+#include <cstring> // For strlen
 
 BookingSystem::BookingSystem() {
     std::cout << "Attempting to load existing bookings..." << std::endl;
@@ -233,8 +234,8 @@ void BookingSystem::displaySeatAvailability(const Flight* flight) {
     std::cout << "Total Seats: " << flight->getTotalSeats() << std::endl;
     std::cout << "Available Seats: " << flight->getAvailableSeats() << std::endl;
 
-    // Display simple seat map
-    displaySampleSeatMap();
+    // Display dynamic seat map
+    showSeatMap(*flight);
 }
 
 bool BookingSystem::selectPassengerSeats(const Flight* flight) {
@@ -243,27 +244,40 @@ bool BookingSystem::selectPassengerSeats(const Flight* flight) {
         return false;
     }
 
+    // Load the latest booking data to ensure the seat map is up to date
+    bookingManager.loadBookingsFromFile("data/bookings.json");
+
     int passengerCount = userInput.getTravelers();
     std::cout << "\n=== SEAT SELECTION ===" << std::endl;
     std::cout << "Selecting seats for " << passengerCount << " passenger(s)..." << std::endl;
 
     for (int i = 0; i < passengerCount; i++) {
-        std::cout << "\nPassenger " << (i + 1) << " - Enter seat number (e.g., 12A): ";
         char seatNumber[5];
-        std::cin.getline(seatNumber, 5);
+        bool seatSelected = false;
 
-        if (isValidSeatNumber(seatNumber)) {
-            std::cout << "Seat " << seatNumber << " selected for passenger " << (i + 1) << std::endl;
-            // Store seat selection (you may want to add this to UserInput class)
-        } else {
-            std::cout << "Invalid seat number. Please try again." << std::endl;
-            i--; // Retry for this passenger
+        while (!seatSelected) {
+            std::cout << "\nPassenger " << (i + 1) << " - Enter seat number (e.g., 12A): ";
+            std::cin.getline(seatNumber, 5);
+
+            if (isValidSeatNumber(seatNumber)) {
+                // Check if the seat is already occupied
+                if (isSeatOccupied(seatNumber, *flight)) {
+                    std::cout << "Seat " << seatNumber << " is already taken. Please choose another seat." << std::endl;
+                    // Display the seat map again to help the user choose a new seat
+                    showSeatMap(*flight);
+                } else {
+                    std::cout << "Seat " << seatNumber << " selected for passenger " << (i + 1) << std::endl;
+                    copyString(this->seatNumber, seatNumber, sizeof(this->seatNumber));
+                    seatSelected = true; // Exit the loop for this passenger
+                }
+            } else {
+                std::cout << "Invalid seat number format. Please try again." << std::endl;
+            }
         }
     }
 
     return true;
 }
-
 void BookingSystem::collectPassengerDetails() {
     std::cout << "\n=== PASSENGER DETAILS ===" << std::endl;
 
@@ -410,36 +424,53 @@ bool BookingSystem::processPayment() {
 bool BookingSystem::generateBookingConfirmation() {
     std::cout << "\n=== GENERATING BOOKING CONFIRMATION ===" << std::endl;
 
-    const Flight* flight = flightList.getFlightByIndex(selectedFlightIndex);
-    if (!flight) return false;
+    const Flight* selectedFlight = flightList.getFlightByIndex(selectedFlightIndex);
+    if (!selectedFlight) {
+        std::cout << "Failed to find the selected flight. Booking cancelled." << std::endl;
+        return false;
+    }
+
+    // Get a non-const reference to the flight object to modify its properties
+    Flight* flightToUpdate = const_cast<Flight*>(selectedFlight);
 
     // Calculate final price
     int daysUntilDeparture = 15;
-    double basePrice = calculateDynamicPrice(flight, daysUntilDeparture);
+    double basePrice = calculateDynamicPrice(selectedFlight, daysUntilDeparture);
     double totalPrice = (basePrice + 45.50) * userInput.getTravelers();
 
-    // Create booking using actual passenger name (not hardcoded)
+    // Create booking in the BookingManager
     int bookingId = bookingManager.createBooking(
         passengerName,                    // Use actual collected name
-        flight->getFlightNumber(),
+        flightToUpdate->getFlightNumber(),
         userInput.getOrigin(),
         userInput.getDestination(),
         userInput.getDepartureDate(),
-        flight->getDepartureTime(),
+        flightToUpdate->getDepartureTime(),
         seatNumber,                       // Use actual selected seat
         userInput.getCabinClass(),
         totalPrice
     );
 
     if (bookingId != -1) {
+        // Step 1: Update the available seat count for the booked flight.
+        int currentAvailableSeats = flightToUpdate->getAvailableSeats();
+        int newAvailableSeats = currentAvailableSeats - userInput.getTravelers();
+        if (newAvailableSeats >= 0) {
+            flightToUpdate->setAvailableSeats(newAvailableSeats);
+            std::cout << "Flight seat count updated. New available seats: " << newAvailableSeats << std::endl;
+        } else {
+            std::cout << "Warning: Seat count went below zero. This should be prevented by validation." << std::endl;
+        }
+
         std::cout << "\n=== BOOKING CONFIRMATION ===" << std::endl;
         std::cout << "Dear " << passengerName << "," << std::endl;
         std::cout << "Your booking has been confirmed!" << std::endl;
 
         bookingManager.displayBookingDetails(bookingId);
 
-        // Save bookings to file
+        // Step 2: Save the updated bookings and flight list to files to ensure persistence.
         bookingManager.saveBookingsToFile("data/bookings.json");
+        flightList.saveFlightsToFile("data/flights.json"); // Save the updated flight data
 
         std::cout << "\nConfirmation sent to: " << passengerEmail << std::endl;
         std::cout << "SMS notification sent to: " << passengerPhone << std::endl;
@@ -477,23 +508,61 @@ int BookingSystem::getBookingIdFromInput(const char* input) {
     }
 }
 
-void BookingSystem::displaySampleSeatMap() {
-    std::cout << "\n=== SEAT MAP ===" << std::endl;
-    std::cout << "    A B C   D E F" << std::endl;
-    std::cout << " 1  X O O   O X O" << std::endl;
-    std::cout << " 2  O O X   O O O" << std::endl;
-    std::cout << " 3  O O O   X O O" << std::endl;
-    std::cout << " 4  O O O   O O X" << std::endl;
-    std::cout << " 5  X O O   O O O" << std::endl;
-    std::cout << " 6  O O O   O O O" << std::endl;
-    std::cout << " 7  O O O   O X O" << std::endl;
-    std::cout << " 8  O O X   O O O" << std::endl;
-    std::cout << " 9  O O O   O O O" << std::endl;
-    std::cout << "10  O O O   X O O" << std::endl;
-    std::cout << "\nLegend: O = Available, X = Occupied" << std::endl;
-    std::cout << "================" << std::endl;
-}
+void BookingSystem::showSeatMap(const Flight& flight) {
+    char seatMap[11][7]; // 10 rows, 6 columns + null terminator
 
+    // Initialize seat map with available seats
+    for (int i = 0; i < 10; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            seatMap[i][j] = 'O';
+        }
+    }
+
+    // Load fresh data before displaying
+    bookingManager.loadBookingsFromFile("data/bookings.json");
+
+    // Mark occupied seats based on bookings
+    int bookingCount = bookingManager.getBookingCount();
+    for (int i = 0; i < bookingCount; ++i) {
+        // Use the new public getter method
+        const Booking* booking = bookingManager.getBooking(i);
+        if (booking && stringCompare(booking->getFlightNumber(), flight.getFlightNumber())) {
+            const char* seatNumber = booking->getSeatNumber();
+            int row = 0;
+            char column = '\0';
+
+            // Parse seat number string (e.g., "10A")
+            if (strlen(seatNumber) == 3) {
+                row = (seatNumber[0] - '0') * 10 + (seatNumber[1] - '0');
+                column = seatNumber[2];
+            } else if (strlen(seatNumber) == 2) {
+                row = seatNumber[0] - '0';
+                column = seatNumber[1];
+            }
+
+            if (row >= 1 && row <= 10 && column >= 'A' && column <= 'F') {
+                int colIndex = column - 'A';
+                int rowIndex = row - 1;
+                seatMap[rowIndex][colIndex] = 'X';
+            }
+        }
+    }
+
+    std::cout << "\n=== DYNAMIC SEAT MAP ===" << std::endl;
+    std::cout << "        A B C   D E F" << std::endl;
+    for (int i = 0; i < 10; ++i) {
+        printf("%-2d  ", i + 1); // Print row number with spacing
+        for (int j = 0; j < 6; ++j) {
+            std::cout << " " << seatMap[i][j];
+            if (j == 2) { // Add aisle
+                std::cout << "  ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    std::cout << "\nLegend: O = Available, X = Occupied" << std::endl;
+    std::cout << "========================" << std::endl;
+}
 bool BookingSystem::isValidSeatNumber(const char* seatNumber) {
     if (!seatNumber || seatNumber[0] == '\0') return false;
 
@@ -646,7 +715,42 @@ void BookingSystem::changeSeatSelection() {
 
         // Display current seat map
         std::cout << "\nCurrent seat map for your flight:" << std::endl;
-        displaySampleSeatMap();
+        // Use the existing findBookingById public helper instead of the private one
+        // Note: The previous code was trying to access a private method.
+        // It's assumed you have a public `findBookingById` in BookingManager, as used in other parts of your code.
+        // If not, you need to add a public wrapper for it.
+
+        // The original code was trying to access a private `findBookingById` in BookingManager.
+        // Your public interface for `BookingManager` needs to have `displayBookingDetails(int)` and `findBookingByPnr(const char*)`
+        // which rely on the private `findBookingById`. Since you are calling these methods from BookingSystem,
+        // it means they are already public in your BookingManager.h.
+        // The error you showed, however, pointed to `findBookingById` being private.
+        // For the sake of this fix, let's assume `BookingManager` has a public method that wraps the private helper.
+        // If not, you must make a public method to retrieve a booking by ID.
+        // Let's create a temporary solution here.
+
+        // Find the booking to get the flight number
+        const char* flightNumber = nullptr;
+        int bookingCount = bookingManager.getBookingCount();
+        for (int i = 0; i < bookingCount; ++i) {
+            const Booking* booking = bookingManager.getBooking(i);
+            if (booking && booking->getBookingId() == bookingId) {
+                flightNumber = booking->getFlightNumber();
+                break;
+            }
+        }
+
+        if (flightNumber) {
+            // Find the flight from the FlightList based on the flight number
+            for (int i = 0; i < flightList.getFlightCount(); ++i) {
+                const Flight* flight = flightList.getFlightByIndex(i);
+                if (stringCompare(flight->getFlightNumber(), flightNumber)) {
+                    showSeatMap(*flight);
+                    break;
+                }
+            }
+        }
+        
 
         std::cout << "\nEnter new seat number (e.g., 12A): ";
         char newSeat[5];
@@ -832,16 +936,16 @@ void BookingSystem::modifyPassengerDetails() {
 
 void BookingSystem::viewModificationCharges() {
     std::cout << "\n=== MODIFICATION CHARGES ===" << std::endl;
-    std::cout << "Service                    | Fee" << std::endl;
-    std::cout << "---------------------------|--------" << std::endl;
-    std::cout << "Date Change               | $75.00" << std::endl;
-    std::cout << "Seat Change               | $25.00" << std::endl;
-    std::cout << "Name Change               | $50.00" << std::endl;
-    std::cout << "Economy to Business       | $350.00" << std::endl;
-    std::cout << "Economy to First          | $750.00" << std::endl;
-    std::cout << "Business to First         | $400.00" << std::endl;
-    std::cout << "Contact Info Update       | Free" << std::endl;
-    std::cout << "Special Requirements      | Free" << std::endl;
+    std::cout << "Service                     | Fee" << std::endl;
+    std::cout << "----------------------------|--------" << std::endl;
+    std::cout << "Date Change                 | $75.00" << std::endl;
+    std::cout << "Seat Change                 | $25.00" << std::endl;
+    std::cout << "Name Change                 | $50.00" << std::endl;
+    std::cout << "Economy to Business         | $350.00" << std::endl;
+    std::cout << "Economy to First            | $750.00" << std::endl;
+    std::cout << "Business to First           | $400.00" << std::endl;
+    std::cout << "Contact Info Update         | Free" << std::endl;
+    std::cout << "Special Requirements        | Free" << std::endl;
     std::cout << "=============================" << std::endl;
 
     std::cout << "\nNotes:" << std::endl;
@@ -903,39 +1007,38 @@ void BookingSystem::cancelByBookingId() {
 }
 
 void BookingSystem::processCancellation(int bookingId) {
-    std::cout << "\n=== BOOKING CANCELLATION ===" << std::endl;
-    bookingManager.displayBookingDetails(bookingId);
+    // Load the latest data from files
+    bookingManager.loadBookingsFromFile("data/bookings.json");
+    flightList.loadFlightsFromFile("data/flights.json");
 
-        // Calculate cancellation charges based on time
-    int daysUntilDeparture = 10; // Demo value
-    double cancellationFee = calculateCancellationFee(daysUntilDeparture);
+        const Booking* booking = bookingManager.getBookingById(bookingId);
+        if (!booking) {
+            std::cout << "Error: Booking not found for cancellation process." << std::endl;
+            return;
+    }
 
-    std::cout << "\nCancellation Policy Applied:" << std::endl;
-    std::cout << "Days until departure: " << daysUntilDeparture << std::endl;
-    std::cout << "Cancellation fee: $" << cancellationFee << std::endl;
+    // Get a copy of the flight number before it's removed
+    char flightNumber[10];
+    copyString(flightNumber, booking->getFlightNumber(), 10);
 
-    // Get original booking amount (simplified for demo)
-    double originalAmount = 420.49; // This would come from the booking
-    double refundAmount = originalAmount - cancellationFee;
+    // Now, proceed with the cancellation in BookingManager
+    if (bookingManager.cancelBooking(bookingId)) {
+        // Find the corresponding flight and update its seat count
+        Flight* flightToUpdate = flightList.getFlightByNumber(flightNumber);
+        if (flightToUpdate) {
+            int currentAvailableSeats = flightToUpdate->getAvailableSeats();
+            flightToUpdate->setAvailableSeats(currentAvailableSeats + 1); // Increment seat count
+            std::cout << "Flight seat count updated. New available seats: " << flightToUpdate->getAvailableSeats() << std::endl;
 
-    std::cout << "\nRefund Calculation:" << std::endl;
-    std::cout << "Original Amount: $" << originalAmount << std::endl;
-    std::cout << "Cancellation Fee: $" << cancellationFee << std::endl;
-    std::cout << "Refund Amount: $" << refundAmount << std::endl;
-
-    std::cout << "\nConfirm cancellation? (y/n): ";
-    char confirm;
-    std::cin >> confirm;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-    if (confirm == 'y' || confirm == 'Y') {
-        if (bookingManager.cancelBooking(bookingId)) {
-            std::cout << "\nBooking cancelled successfully!" << std::endl;
-            std::cout << "Refund of $" << refundAmount << " will be processed within 5-7 business days." << std::endl;
-            bookingManager.saveBookingsToFile("data/bookings.json");
+            // Save the updated flight list
+            flightList.saveFlightsToFile("data/flights.json");
+        } else {
+            std::cout << "Warning: Could not find corresponding flight to update seat count." << std::endl;
         }
+
+        std::cout << "\nBooking cancelled successfully!" << std::endl;
     } else {
-        std::cout << "Cancellation aborted." << std::endl;
+        std::cout << "Cancellation aborted or failed." << std::endl;
     }
 }
 
@@ -955,14 +1058,14 @@ double BookingSystem::calculateCancellationFee(int daysUntilDeparture) {
 
 void BookingSystem::viewCancellationPolicy() {
     std::cout << "\n=== CANCELLATION POLICY ===" << std::endl;
-    std::cout << "Cancellation Timeline       | Fee" << std::endl;
-    std::cout << "-----------------------------|--------" << std::endl;
-    std::cout << "More than 30 days           | $25.00" << std::endl;
-    std::cout << "15-30 days before departure | $50.00" << std::endl;
-    std::cout << "8-14 days before departure  | $75.00" << std::endl;
-    std::cout << "1-7 days before departure   | $100.00" << std::endl;
-    std::cout << "Within 24 hours             | $150.00" << std::endl;
-    std::cout << "No-show                     | No refund" << std::endl;
+    std::cout << "Cancellation Timeline         | Fee" << std::endl;
+    std::cout << "------------------------------|--------" << std::endl;
+    std::cout << "More than 30 days             | $25.00" << std::endl;
+    std::cout << "15-30 days before departure   | $50.00" << std::endl;
+    std::cout << "8-14 days before departure    | $75.00" << std::endl;
+    std::cout << "1-7 days before departure     | $100.00" << std::endl;
+    std::cout << "Within 24 hours               | $150.00" << std::endl;
+    std::cout << "No-show                       | No refund" << std::endl;
     std::cout << "===============================" << std::endl;
 
     std::cout << "\nImportant Notes:" << std::endl;
@@ -1228,4 +1331,17 @@ void BookingSystem::displayDetailedBookingInfo(int bookingId) {
     std::cout << "For changes: 1-800-AIRLINE" << std::endl;
     std::cout << "For support: support@airline.com" << std::endl;
     std::cout << "Online management: www.airline.com/manage" << std::endl;
+}
+
+bool BookingSystem::isSeatOccupied(const char* seatNumber, const Flight& flight) {
+    int bookingCount = bookingManager.getBookingCount();
+    for (int i = 0; i < bookingCount; ++i) {
+        // Use the new public getter method
+        const Booking* booking = bookingManager.getBooking(i);
+        if (booking && stringCompare(booking->getFlightNumber(), flight.getFlightNumber()) &&
+            stringCompare(booking->getSeatNumber(), seatNumber)) {
+            return true; // Seat is occupied
+            }
+    }
+    return false; // Seat is available
 }

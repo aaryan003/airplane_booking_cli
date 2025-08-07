@@ -37,6 +37,8 @@ private:
     void upgradeCabinClass();
     void modifyPassengerDetails();
     void showModificationMenu(int bookingId); // Added missing declaration
+    // Add this new private helper function declaration
+    bool isSeatOccupied(const char* seatNumber, const Flight& flight);
 
 public:
     BookingSystem();

@@ -301,3 +301,13 @@ void FlightList::loadMockDataForRoute(const char* origin, const char* destinatio
     std::cout << "Loaded " << flightCount << " backup flights for route." << std::endl;
     std::cout << "===========================================" << std::endl;
 }
+
+// Add this new public getter method to FlightList.h
+Flight* FlightList::getFlightByNumber(const char* flightNumber) {
+    for (int i = 0; i < flightCount; ++i) {
+        if (stringCompare(flights[i].getFlightNumber(), flightNumber)) {
+            return &flights[i];
+        }
+    }
+    return nullptr;
+}

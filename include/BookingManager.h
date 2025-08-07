@@ -71,6 +71,10 @@ public:
     // Statistics methods
     int getBookingCount() const { return bookingCount; }
     double calculateTotalRevenue() const;
+
+    // Public getters to access private data safely
+    const Booking* getBooking(int index) const;
+    const Booking* getBookingById(int bookingId) const;
 };
 
 #endif // BOOKINGMANAGER_H
